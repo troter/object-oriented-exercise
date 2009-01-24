@@ -1,4 +1,4 @@
-<?php
+<?php # -*- coding: utf-8 -*- 
 # DBA handler
 # Written by Balazs Nagy <js@js.hu>
 # Version: 2005-02-09
@@ -13,6 +13,163 @@ $GLOBALS["debug"] = false;
 function debug_log($str) {
 	if (isset($GLOBALS["debug"]) && $GLOBALS["debug"] === true)
 		error_log($str);
+}
+
+class DBA_DSN
+{
+    private $dsn;
+    private $query;
+
+    function __construct(string $dsn) {
+        list($this->dsn, $this->query) = parse($dsn);
+    }
+
+    /**
+     * $dsn = "<driver>://<username>:<password>@<host>:<port>/<database>?<query>"
+     */
+    private function parse(string $dsn) {
+        $query = "";
+        if (strpos('\?', $dsn) !== false)
+            list($dsn, $query) = split('\?', $dsn, 2);
+        $parsed_query = $this->parse_str($query);
+        $parsed_dsn   = $this->parse_dsn($dsn);
+        return array($parsed_query, $parsed_dsn);
+    }
+
+    private function parse_str(string $query) {
+        parse_str($query, $parsed_query);
+        $parsed_query['mode'] = new DBA_Option_OpenMode($parsed_query['mode']);
+        $parsed_query['onopen'] = new DBA_Option_OnOpenHandler($parsed_query['onopen']);
+        $parsed_query['persistent'] = new DBA_Option_Persistent($parsed_query['persistent']);
+        return $parsed_query;
+    }
+
+    private function parse_dsn(string $dsn) {
+        $parsed_query = array(
+            'scheme'   => '',
+            'user'     => '',
+            'password' => '',
+            'host'     => '',
+            'port'     => '',
+            'database' => '',
+        );
+
+        $parsed_query['scheme'] = new DBA_DSN_Scheme($parsed_query['scheme']);
+        $parsed_query['user'] = new DBA_DSN_User($parsed_query['user']);
+        $parsed_query['password'] = new DBA_DSN_Password($parsed_query['password']);
+        $parsed_query['host'] = new DBA_DSN_Host($parsed_query['host']);
+        $parsed_query['port'] = new DBA_DSN_Port($parsed_query['port']);
+        $parsed_query['database'] = new DBA_DSN_Database($parsed_query['database']);
+        return $parsed_query;
+    }
+}
+
+class DBA_DSN_Scheme {
+    private $scheme;
+    function __construct(string $scheme) {
+        $this->scheme = $scheme;
+    }
+    function value() {
+        return $this->scheme;
+    }
+    function has_dba_handler() {
+        $handler_name = $this->scheme;
+        return function_exists("dba_handlers")
+            && in_array($handler_name, dba_handlers());
+    }
+}
+
+class DBA_DSN_User {
+    private $user;
+    function __construct(string $user) {
+        $this->user = $user;
+    }
+    function value() {
+        return $this->user;
+    }
+}
+
+class DBA_DSN_Password {
+    private $password;
+    function __construct(string $password) {
+        $this->password = $password;
+    }
+    function value() {
+        return $this->password;
+    }
+}
+
+class DBA_DSN_Host {
+    private $host;
+    function __construct(string $host) {
+        $this->host = $host;
+    }
+    function value() {
+        return $this->host;
+    }
+}
+
+class DBA_DSN_Port {
+    private $port;
+    function __construct(string $port) {
+        $this->port = $port;
+    }
+    function value() {
+        return $this->port;
+    }
+}
+
+class DBA_DSN_Database {
+    private $database;
+    function __construct(string $database) {
+        $this->database = $database;
+    }
+    function value() {
+        return $this->database;
+    }
+    function realpath() {
+        return "";
+    }
+}
+
+class DBA_Option {
+    
+}
+
+class DBA_Option_OpenMode {
+    private $mode;
+    function __construct(string $mode) {
+        $this->mode = $mode;
+    }
+    function is_create() { return $this->mode == "c"; }
+    function is_readonly() { return $this->mode == "r"; }
+    function is_readwrite_or_create() { return $this->mode == "w"; }
+    function is_unknown() {
+        return !($this->is_create() ||
+                 $this->is_readonly() ||
+                 $this->is_readwrite_or_create());
+    }
+}
+
+class DBA_Option_OnOpenHandler {
+    private $handler_function_name;
+    function __construct(string $handler_function_name) {
+        $this->handler_function_name = $handler_function_name;
+    }
+    function call() {
+        if (function_exists($this->handler_function_name))
+            call_user_func($this->handler_function_name);
+    }
+}
+
+class DBA_Option_Persistent {
+    private $condition;
+    function __construct($condition) {
+        $this->condition = $condition;
+    }
+    function is_enable() {
+        return preg_match("true|1|on|enabled", $condition) === 1;
+    }
 }
 
 class DBA
@@ -80,6 +237,7 @@ class DBA
 
 	function DBA($dsn)
 	{
+        // 必要ない?
 		$this->dsn = $dsn;
 		$info = DBA::__parseDSN($dsn);
 		if (!isset($info["scheme"]))
