@@ -29,12 +29,32 @@ readconf();
 # initialize some variables, etc. We also prove the existence of UFOs,
 # but that part''s hidden.
 
-$https = array_key_exists("HTTPS", $_SERVER) && $_SERVER["HTTPS"] == "ON";
-$whoami = "http".($https? "s": "")."://".$_SERVER['SERVER_NAME'];
-$sp =& $_SERVER['SERVER_PORT'];
-if (($https && $sp != 433) || $sp != 80)
-	$whoami .= ":$sp";
-$whoami .= $_SERVER['SCRIPT_NAME'];
+function is_https() {
+    return array_key_exists("HTTPS", $_SERVER) && $_SERVER["HTTPS"] == "ON";
+}
+
+function is_this_port_default_for_protocol($protocol, $port) {
+    if ($protocol === "https" && $port == 443)
+        return true;
+    if ($protocol === "http" && $port == 80)
+        return true;
+    return false;
+}
+
+function whoami() {
+    $protocol = is_https() ? "https" : "http";
+    $server_name = $_SERVER['SERVER_NAME'];
+    $server_port = $_SERVER['SERVER_PORT'];
+    $script_name = $_SERVER['SCRIPT_NAME'];
+
+    $url = "${protocol}://${server_name}";
+    if (is_this_port_default_for_protocol($protocol, $port))
+        $url = "${url}:${server_port}";
+    $url = "${url}${script_name}";
+    return $url;
+}
+$whoami = whoami();
+
 $lastDoY = null;
 
 if ($conf_language != 'en') {
