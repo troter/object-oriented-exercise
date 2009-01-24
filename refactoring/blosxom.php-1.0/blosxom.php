@@ -2,10 +2,17 @@
 # Blosxom.PHP: a rewrite of PHPosxom, which is a PHP rewrite of Blosxom
 # HELPER FUNCTIONS
 
+function is_empty_string($str) {
+    return is_string($str) && strlen($str) == 0;
+}
+function is_empty_array($array) {
+    return is_array($array) && empty($array);
+}
+
 # Returns real path
 function rpath($wd, $path)
 {
-	if (is_string($path) && strlen($path)) {
+	if (is_empty_string($path)) {
 		if ($path[0] != "/")
 			$path = $wd."/".$path;
 	} else	
@@ -18,7 +25,7 @@ function readconf()
 {
 	global $conf;
 
-	if (isset($conf) && is_array($conf) && count($conf))
+	if (isset($conf) && is_empty_array($conf))
 		foreach (array_keys($conf) as $key)
 			if (isSaneFilename($key))
 				$GLOBALS["conf_".$key] = &$conf[$key];
@@ -29,7 +36,7 @@ function readconfdefs()
 {
 	global $confdefs;
 
-	if (isset($confdefs) && is_array($confdefs) && count($confdefs))
+	if (isset($confdefs) && is_empty_array($confdefs))
 		foreach (array_keys($confdefs) as $key)
 			if (isSaneFilename($key) && !array_key_exists("conf_".$key, $GLOBALS))
 				$GLOBALS["conf_".$key] = &$confdefs[$key];
