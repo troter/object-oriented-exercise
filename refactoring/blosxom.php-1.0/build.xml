@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<project name="Blosxom.PHP-refactor-builder" default="build" basedir=".">
+
+  <property name="src.dir" value="./src" />
+  <property name="classes.dir" value="./classes" />
+  <property name="build.dir" value="./build" />
+  <property name="build.log.dir" value="${build.dir}/log" />
+  <property name="test.dir" value="./test" />
+
+  <path id="project.classes.path" >
+    <pathelement dir="${classes.dir}"/>
+  </path>
+  <includepath classpathRef="project.classes.path" />
+
+  <target name="clean">
+    <delete dir="${build.dir}"/>
+  </target>
+
+  <target name="prepare">
+    <mkdir dir="${build.log.dir}"/>
+  </target>
+
+  <target name="phpunit">
+    <phpunit printsummary="true" haltonfailure="true">
+      <formatter todir="${build.log.dir}" type="xml"/>
+      <batchtest>
+        <fileset dir="${test.dir}">
+          <include name="**/*Test.php"/>
+        </fileset>
+      </batchtest>
+    </phpunit>
+  </target>
+
+  <target name="build" depends="clean,prepare,phpunit"/>
+
+  <target name="dist" />
+
+  <target name="lint" description="php lint">
+    <phplint>
+      <fileset dir="${src.dir}">
+        <include name="**/*.php" />
+      </fileset>
+      <fileset dir="${classes.dir}">
+        <include name="**/*.php" />
+      </fileset>
+    </phplint>
+  </target>
+</project>
